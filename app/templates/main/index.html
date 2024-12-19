@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Dashboard</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Etsy Orders</h5>
+                <p class="card-text display-4">{{ orders|selectattr('platform', 'equalto', 'etsy')|list|length }}</p>
+                <a href="{{ url_for('main.orders', platform='etsy') }}" class="btn btn-primary">View Orders</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Square Orders</h5>
+                <p class="card-text display-4">{{ orders|selectattr('platform', 'equalto', 'square')|list|length }}</p>
+                <a href="{{ url_for('main.orders', platform='square') }}" class="btn btn-primary">View Orders</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Orders</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order Date</th>
+                                <th>Platform</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if order.platform == 'etsy' 
+                                                          else 'success' if order.platform == 'square'
+                                                          else 'info' }}">
+                                        {{ order.platform|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('main.customer', id=order.customer_id) }}">
+                                        {{ order.customer.name }}
+                                    </a>
+                                </td>
+                                <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if order.status == 'completed'
+                                                          else 'warning' if order.status == 'pending'
+                                                          else 'secondary' }}">
+                                        {{ order.status|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

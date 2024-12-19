@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Orders{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Orders</h1>
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    Platform: {{ current_platform|title if current_platform != 'all' else 'All' }}
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('main.orders', platform='all', status=current_status) }}">All</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('main.orders', platform='etsy', status=current_status) }}">Etsy</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('main.orders', platform='square', status=current_status) }}">Square</a></li>
+                </ul>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                    Sync Orders
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('main.sync_etsy') }}">Sync Etsy Orders</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('main.sync_square') }}">Sync Square Orders</a></li>
+                </ul>
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary ml-2" onclick="toggleLogs()">Show Logs</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order Date</th>
+                                <th>Platform</th>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Tracking</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'primary' if order.platform == 'etsy' 
+                                                          else 'success' if order.platform == 'square'
+                                                          else 'info' }}">
+                                        {{ order.platform|title }}
+                                    </span>
+                                </td>
+                                <td>{{ order.platform_order_id }}</td>
+                                <td>
+                                    <a href="{{ url_for('main.customer', id=order.customer_id) }}">
+                                        {{ order.customer.name }}
+                                    </a>
+                                </td>
+                                <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if order.status == 'completed'
+                                                          else 'warning' if order.status == 'pending'
+                                                          else 'secondary' }}">
+                                        {{ order.status|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if order.tracking_number %}
+                                        <div>
+                                            <strong>Carrier:</strong> {{ order.shipping_carrier }}<br>
+                                            <strong>Number:</strong> 
+                                            {% if order.tracking_url %}
+                                                <a href="{{ order.tracking_url }}" target="_blank">{{ order.tracking_number }}</a>
+                                            {% else %}
+                                                {{ order.tracking_number }}
+                                            {% endif %}
+                                            <br>
+                                            <strong>Status:</strong> {{ order.tracking_status or 'Unknown' }}<br>
+                                            {% if order.estimated_delivery_date %}
+                                                <strong>ETA:</strong> {{ order.estimated_delivery_date.strftime('%Y-%m-%d') }}
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        No tracking
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #logViewer .log-entry {
+        margin-bottom: 8px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-family: 'Consolas', monospace;
+        font-size: 13px;
+    }
+    #logViewer .log-entry.info {
+        background-color: rgba(13, 110, 253, 0.1);
+        border-left: 4px solid #0d6efd;
+    }
+    #logViewer .log-entry.error {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-left: 4px solid #dc3545;
+    }
+    #logViewer .log-entry.warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-left: 4px solid #ffc107;
+    }
+    #logViewer .timestamp {
+        color: #6c757d;
+        font-size: 12px;
+    }
+    #logViewer .level {
+        font-weight: bold;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    #logViewer .level.info {
+        background-color: #0d6efd;
+        color: white;
+    }
+    #logViewer .level.error {
+        background-color: #dc3545;
+        color: white;
+    }
+    #logViewer .level.warning {
+        background-color: #ffc107;
+        color: black;
+    }
+    #logViewer .message {
+        margin-left: 8px;
+        color: #e9ecef;
+    }
+    #logViewer .sql {
+        color: #6c757d;
+        font-size: 12px;
+        padding-left: 24px;
+        margin-top: 4px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+</style>
+
+<div id="logViewer" class="mt-4" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4>Shipping Logs</h4>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" onclick="clearLogs()">Clear</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleLogs()">Hide Logs</button>
+        </div>
+    </div>
+    <div class="bg-dark text-light p-3 rounded" style="height: 400px; overflow-y: auto;">
+        <div id="logContent"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+let logsVisible = false;
+let logUpdateInterval = null;
+
+function formatSql(sql) {
+    // Simple SQL formatting
+    return sql.replace(/\b(SELECT|FROM|WHERE|AND|OR|ORDER BY|GROUP BY|HAVING|JOIN|LEFT|RIGHT|INNER|OUTER|ON|AS)\b/gi, '\n$1')
+              .replace(/,/g, ',\n');
+}
+
+function formatLogEntry(log) {
+    const timestamp = log.timestamp;
+    const level = log.level.toLowerCase();
+    const message = log.message;
+    
+    let html = `<div class="log-entry ${level}">`;
+    html += `<span class="timestamp">${timestamp}</span>`;
+    html += `<span class="level ${level}">${level}</span>`;
+    html += `<span class="message">${message}</span>`;
+    
+    // If there's SQL, format it nicely
+    if (message.includes('SQL:')) {
+        const sql = message.split('SQL:')[1].trim();
+        html += `<div class="sql">${formatSql(sql)}</div>`;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+function clearLogs() {
+    document.getElementById('logContent').innerHTML = '';
+}
+
+function toggleLogs() {
+    const logViewer = document.getElementById('logViewer');
+    logsVisible = !logsVisible;
+    logViewer.style.display = logsVisible ? 'block' : 'none';
+    
+    if (logsVisible) {
+        fetchLogs();
+        // Start periodic updates
+        logUpdateInterval = setInterval(fetchLogs, 5000);
+    } else {
+        // Stop periodic updates
+        if (logUpdateInterval) {
+            clearInterval(logUpdateInterval);
+            logUpdateInterval = null;
+        }
+    }
+}
+
+function fetchLogs() {
+    fetch('/logs/shipping')
+        .then(response => response.json())
+        .then(logs => {
+            const logContent = document.getElementById('logContent');
+            logContent.innerHTML = logs.map(formatLogEntry).join('');
+            logContent.scrollTop = logContent.scrollHeight;
+        })
+        .catch(error => console.error('Error fetching logs:', error));
+}
+
+// Initialize when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Log viewer initialized');
+});
+</script>
+{% endblock %}

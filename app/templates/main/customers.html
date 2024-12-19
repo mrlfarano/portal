@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Customers</h1>
+            <form class="d-flex" method="get">
+                <input type="search" name="search" class="form-control me-2" placeholder="Search customers..." value="{{ search }}">
+                <button class="btn btn-outline-primary" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Orders</th>
+                                <th>Last Order</th>
+                                <th>Total Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in customers %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('main.customer', id=customer.id) }}">
+                                        {{ customer.name }}
+                                    </a>
+                                </td>
+                                <td>{{ customer.email }}</td>
+                                <td>{{ customer.phone or 'N/A' }}</td>
+                                <td>{{ customer.orders|length }}</td>
+                                <td>
+                                    {% if customer.orders %}
+                                        {{ customer.orders|sort(attribute='order_date')|last.order_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    ${{ "%.2f"|format(customer.orders|sum(attribute='total_amount')) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

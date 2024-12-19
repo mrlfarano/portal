@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Settings</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Square Settings</h5>
+                {{ form.square_access_token.label(class="form-label") }}
+                {{ form.square_access_token(class="form-control") }}
+                {% if square_last_sync %}
+                <small class="text-muted">Last synced: {{ square_last_sync }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Etsy Settings</h5>
+                {% if etsy_connected %}
+                <p>Connected to Etsy</p>
+                {% if etsy_last_sync %}
+                <small class="text-muted">Last synced: {{ etsy_last_sync }}</small>
+                {% endif %}
+                {% else %}
+                <a href="{{ url_for('main.connect_etsy') }}" class="btn btn-primary">Connect to Etsy</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Enable tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %}

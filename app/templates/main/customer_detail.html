@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.customers') }}">Customers</a></li>
+                <li class="breadcrumb-item active">{{ customer.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Customer Information</h5>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">{{ customer.name }}</dd>
+                    
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">{{ customer.email }}</dd>
+                    
+                    <dt class="col-sm-4">Phone</dt>
+                    <dd class="col-sm-8">{{ customer.phone or 'N/A' }}</dd>
+                    
+                    <dt class="col-sm-4">Orders</dt>
+                    <dd class="col-sm-8">{{ orders|length }}</dd>
+                    
+                    <dt class="col-sm-4">Total Spent</dt>
+                    <dd class="col-sm-8">${{ "%.2f"|format(orders|sum(attribute='total_amount')) }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#orders">Orders</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#messages">Messages</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="orders">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Platform</th>
+                                        <th>Order ID</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr>
+                                        <td>{{ order.order_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'primary' if order.platform == 'etsy' 
+                                                                  else 'success' if order.platform == 'square'
+                                                                  else 'info' }}">
+                                                {{ order.platform|title }}
+                                            </span>
+                                        </td>
+                                        <td>{{ order.platform_order_id }}</td>
+                                        <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if order.status == 'completed'
+                                                                  else 'warning' if order.status == 'pending'
+                                                                  else 'secondary' }}">
+                                                {{ order.status|title }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="messages">
+                        <div class="messages-container">
+                            {% for message in messages %}
+                            <div class="message mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">
+                                        {{ message.sent_at.strftime('%Y-%m-%d %H:%M') }}
+                                        via {{ message.platform|title }}
+                                    </small>
+                                </div>
+                                <div class="message-content mt-1">
+                                    {{ message.content }}
+                                </div>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No messages found.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
